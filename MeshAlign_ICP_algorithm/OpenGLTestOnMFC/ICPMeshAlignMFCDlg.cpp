@@ -22,13 +22,13 @@ class CAboutDlg : public CDialog
 public:
 	CAboutDlg();
 
-// Dialog Data
+	// Dialog Data
 	enum { IDD = IDD_ABOUTBOX };
 
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
-// Implementation
+	// Implementation
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -125,7 +125,7 @@ BOOL CICPMeshAlignMFCDlg::OnInitDialog()
 	// Setup the OpenGL Window's timer to render
 	m_oglWindow.m_unpTimer = m_oglWindow.SetTimer(1, 1, 0);
 
-	
+
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -224,7 +224,7 @@ void CICPMeshAlignMFCDlg::OnTimer(UINT_PTR nIDEvent)
 void CICPMeshAlignMFCDlg::OnBnClickedLoad()
 {
 	CFileDialog dlg(true,NULL,NULL,OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
-	"all files(*.*)|*.*|model files(*.ply)|*.ply", NULL);
+		"all files(*.*)|*.*|model files(*.ply)|*.ply", NULL);
 	if (dlg.DoModal()!= IDOK) return;
 
 	MyMesh mesh;
@@ -253,31 +253,35 @@ void CICPMeshAlignMFCDlg::OnBnClickedLoad()
 
 void CICPMeshAlignMFCDlg::OnBnClickedAlign()
 {
-	ALIGN_CONTROL = true;
+	//ALIGN_CONTROL = true;
+	ALIGN_CONTROL = !ALIGN_CONTROL;
 	NOISE_CONTROL = false;
-	ROTATE_CONTROL = 0;
+	//ROTATE_CONTROL = 0;
 }
 
 void CICPMeshAlignMFCDlg::OnBnClickedNoise()
 {
 	NOISE_CONTROL = true;
 	ALIGN_CONTROL = false;
-	ROTATE_CONTROL = 0;
+	//ROTATE_CONTROL = 0;
 }
 
 void CICPMeshAlignMFCDlg::OnBnClickedRotatex()
 {
 	ROTATE_CONTROL = 1;
+	ALIGN_CONTROL = false;
 }
 
 
 void CICPMeshAlignMFCDlg::OnBnClickedRotatey()
 {
 	ROTATE_CONTROL = 2;
+	ALIGN_CONTROL = false;
 }
 
 
 void CICPMeshAlignMFCDlg::OnBnClickedRotatez()
 {
 	ROTATE_CONTROL = 3;
+	ALIGN_CONTROL = false;
 }

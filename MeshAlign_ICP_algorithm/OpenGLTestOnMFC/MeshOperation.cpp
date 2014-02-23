@@ -23,7 +23,7 @@ istream* dataIn = NULL;		// input for data points
 istream* queryIn = NULL;	// input for query points
 
 //Assign mesh points to ANN point array
-void getsampledAnnArray(MyMesh &mesh,ANNpointArray &dataArray, size_t sample_Pts, int sample_ratio)
+void getsampledAnnArray(size_t sample_Pts,int sample_ratio,MyMesh &mesh,ANNpointArray &dataArray)
 {
 	ANNpoint Pt;
 	Pt = annAllocPt(dim);
@@ -59,6 +59,7 @@ void getsampledAnnArray(MyMesh &mesh,ANNpointArray &dataArray, size_t sample_Pts
 //Align meshes
 void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 {
+	/*ANN kd-tree find nearest point*/
 	ANNpointArray	sampledSourceArray;		// source data points array
 	ANNpointArray	sampledTargetArray;		// target data points array
 	ANNpointArray	MatchArray;				// matched data points array
@@ -80,15 +81,15 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 	int sample_targetPts = max_targetPts/sample_ratio;		//sample target points
 
 	double mean_dist = 0.0;    //mean distance 
-	double thresh = 0.00001;	   //threshold for distance judgement
+	double thresh = 0.000005;	   //threshold for distance judgement
 
 	sampledSourceArray = annAllocPts(sample_sourcePts, dim);
 	sampledTargetArray = annAllocPts(sample_targetPts, dim);
 	MatchArray		   = annAllocPts(sample_sourcePts, dim);
 
 	//assign sampled meshes to ANN array,directly modify the address of arrays
-	getsampledAnnArray(mesh1,sampledSourceArray,sample_sourcePts,sample_ratio);
-	getsampledAnnArray(mesh2,sampledTargetArray,sample_targetPts,sample_ratio);
+	getsampledAnnArray(sample_sourcePts,sample_ratio,mesh1,sampledSourceArray);
+	getsampledAnnArray(sample_sourcePts,sample_ratio,mesh2,sampledTargetArray);
 
 	//build kd-tree
 	kdTree = new ANNkd_tree(	// build search structure
@@ -97,10 +98,8 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 		dim);					// dimension of space
 
 	/*MATRICES CALCULATION*/
-
-	//Q MATRIX and P MATRIX
-	//matching source points in kd-tree
-	//and assign coordinates to array
+	//Q MATRIX(target mesh) and P MATRIX (source mesh)
+	//matching source points in kd-tree and assign coordinates to array
 	double Q_sum  [3] = {};
 	double P_sum  [3] = {};
 	double Q_mean [3] = {};
@@ -195,11 +194,13 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 		ppt_cross_array[8] += P_diff[2]*P_diff[2];
 	}
 
-	//inverse p*(p_transpose) cross product array
-	/*for(int d=0;d<9;d++)
+	/*
+	TODO inverse p*(p_transpose) cross product array
+	(ignore this will not affect the result too much)
+	for(int d=0;d<9;d++)
 	{
-	ppt_cross_array[d] = 1.0f/ppt_cross_array[d];
-	}*/
+	here to inverse ppt_cross_array[d];
+	}
 
 	//get an array of 
 	//(product of q*(p_transpose) cross product matrix) by (inverse p*(p_transpose) cross product matrix)
@@ -213,6 +214,7 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 	A[6] = qpt_cross_array[6]*ppt_cross_array[0]+qpt_cross_array[7]*ppt_cross_array[3]+qpt_cross_array[8]*ppt_cross_array[6];
 	A[7] = qpt_cross_array[6]*ppt_cross_array[1]+qpt_cross_array[7]*ppt_cross_array[4]+qpt_cross_array[8]*ppt_cross_array[7];
 	A[8] = qpt_cross_array[6]*ppt_cross_array[2]+qpt_cross_array[7]*ppt_cross_array[5]+qpt_cross_array[8]*ppt_cross_array[8];
+	*/
 
 	//cross product matrix 
 	/*
@@ -228,13 +230,14 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 		for(int col=0;col<dim; col++)
 		{
 			//gsl_matrix_set (cross_matrix, row, col,A[id]); 
-			gsl_matrix_set (cross_matrix, row, col,qpt_cross_array[id]); 
+			//ignore the inverse of ppt_cross_array, will not affect the result
+			gsl_matrix_set (cross_matrix, row, col,qpt_cross_array[id]);   
 			id++;
 		}
 	}
 
-	//Rotation matrix
-	double Rotation [9];
+	//rotation matrix
+	double rotation [9];
 
 	//SVD = U S V^T
 	gsl_matrix * V = gsl_matrix_alloc (dim, dim);
@@ -264,21 +267,21 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 	gsl_vector_free (S);
 	gsl_vector_free (work);
 
-	//Rotation matrix: R* = VV*UT
+	//rotation matrix: R* = VV*UT
 	cblas_dgemm(CblasRowMajor, 
 		CblasNoTrans, CblasNoTrans, 3, 3, 3,
-		1.0, U_array, 3,VT_array , 3, 0.0, Rotation, 3);
+		1.0, U_array, 3,VT_array , 3, 0.0, rotation, 3);
 
 	//Translation matrix: Q_mean - R*Pmean
-	double Trans [3];
+	double trans [3];
 	double RP_mean[3];
 	cblas_dgemm(CblasRowMajor, 
 		CblasNoTrans, CblasNoTrans, 3, 1, 3,
-		1.0, Rotation, 3, P_mean, 1, 0.0, RP_mean, 1);
+		1.0, rotation, 3, P_mean, 1, 0.0, RP_mean, 1);
 
 	for(int d=0;d<dim;d++)
 	{
-		Trans[d] = Q_mean[d]-RP_mean[d];
+		trans[d] = Q_mean[d]-RP_mean[d];
 	}
 
 	//Rotate and translate source data points to a new mesh
@@ -287,14 +290,14 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 		double oldPt [3] = {};
 		double newPt [3] = {};
 		for(int d=0;d<dim;d++){
-			newPt[d]=Trans[d];
+			newPt[d]=trans[d];
 			oldPt[d]=*(mesh1.point(it).data()+d);
 		}
 
-		//Mutiply by Rotation matrix
+		//Mutiply by rotation matrix
 		cblas_dgemm(CblasRowMajor, 
 			CblasNoTrans, CblasNoTrans, 3, 1, 3,
-			1.0, Rotation, 3,oldPt, 1, 1, newPt, 1);
+			1.0, rotation, 3,oldPt, 1, 1, newPt, 1);
 
 		//update the source mesh
 		for(int d=0;d<dim;d++){
@@ -304,40 +307,40 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 
 };
 
-void RotateMesh(MyMesh &mesh1)
+void RotateMesh(double rotate_theta,MyMesh &mesh1)
 {
-	double theta = 0.1;
-	double Rotation [9] = {};
-	double Trans [3] = {};
+	//double theta = 10*2*M_PI/360;
+	double rotation [9] = {};
+	double trans [3] = {};
 	double Pt_mean [3] = {};
 	double Pt_sum [3] = {};
 	int mesh1size = mesh1.n_vertices();
- 
+
 	switch(ROTATE_CONTROL)
 	{
 	case 1:
 		//rotate at x axis
-		Rotation[0] = 1.0;
-		Rotation[4] = cos(theta);
-		Rotation[5] = -sin(theta);
-		Rotation[7] = sin(theta);
-		Rotation[8] = cos(theta);
+		rotation[0] = 1.0;
+		rotation[4] = cos(rotate_theta);
+		rotation[5] = -sin(rotate_theta);
+		rotation[7] = sin(rotate_theta);
+		rotation[8] = cos(rotate_theta);
 		break;
 	case 2:
 		//rotate at y axis
-		Rotation[0] = cos(theta);
-		Rotation[2] = sin(theta);
-		Rotation[4] = 1.0;
-		Rotation[6] = -sin(theta);
-		Rotation[8] = cos(theta);
+		rotation[0] = cos(rotate_theta);
+		rotation[2] = sin(rotate_theta);
+		rotation[4] = 1.0;
+		rotation[6] = -sin(rotate_theta);
+		rotation[8] = cos(rotate_theta);
 		break;
 	case 3:
 		//rotate at z axis
-		Rotation[0] = cos(theta);
-		Rotation[1] = -sin(theta);
-		Rotation[3] = sin(theta);
-		Rotation[4] = cos(theta);
-		Rotation[8] = 1.0;
+		rotation[0] = cos(rotate_theta);
+		rotation[1] = -sin(rotate_theta);
+		rotation[3] = sin(rotate_theta);
+		rotation[4] = cos(rotate_theta);
+		rotation[8] = 1.0;
 		break;
 	}
 
@@ -357,11 +360,11 @@ void RotateMesh(MyMesh &mesh1)
 	{
 		Pt_mean[d] =  Pt_sum[d]/mesh1size;
 		//get Translation array
-		Trans[d] = Pt_mean[d];
+		trans[d] = Pt_mean[d];
 	}
 
 
-	//Rotation along the center of current mesh
+	//rotation along the center of current mesh
 	for (auto it = mesh1.vertices_begin(); it != mesh1.vertices_end(); ++it)
 	{
 		double oldPt [3] = {};
@@ -370,19 +373,19 @@ void RotateMesh(MyMesh &mesh1)
 		{
 			oldPt[d]=*(mesh1.point(it).data()+d);
 			//Translate to origin
-			oldPt[d]-=Trans[d];
+			oldPt[d]-=trans[d];
 		}
 
-		//Mutiply by Rotation matrix
+		//Mutiply by rotation matrix
 		cblas_dgemm(CblasRowMajor, 
 			CblasNoTrans, CblasNoTrans, 3, 1, 3,
-			1.0, Rotation, 3,oldPt, 1, 1, newPt, 1);
+			1.0, rotation, 3,oldPt, 1, 1, newPt, 1);
 
 		//update the source mesh
 		for(int d=0;d<dim;d++)
 		{
 			//Translate back
-			newPt[d]+=Trans[d];
+			newPt[d]+=trans[d];
 			*(mesh1.point(it).data()+d)=float(newPt[d]);
 		}
 	}
@@ -390,11 +393,11 @@ void RotateMesh(MyMesh &mesh1)
 }
 
 
-void AddNoise(MyMesh &mesh2)
+void AddNoise(double noise_standard_deviation,MyMesh &mesh2)
 {
-	double  stddev = 10.01;
+	//double  standard_deviation = 0.01;
 	std::default_random_engine generator;
-	std::normal_distribution<double> distribution(0.0,stddev);
+	std::normal_distribution<double> distribution(0.0,noise_standard_deviation); //Gaussian distribution: mean value = 0.0
 
 	for (auto it = mesh2.vertices_begin(); it != mesh2.vertices_end(); ++it)
 	{
@@ -403,9 +406,9 @@ void AddNoise(MyMesh &mesh2)
 		{
 			Pt[d]=*(mesh2.point(it).data()+d);
 			double randn = distribution(generator);
-			if ((randn>=-1.0)&&(randn<=1.0))
+			if ((randn>=-1.0)&&(randn<=1.0))							   //Gaussian distribution range [-1.0,1.0]
 			{
-				Pt[d]= Pt[d]*(1+randn);
+				Pt[d]= Pt[d]*(1.0+randn);
 				*(mesh2.point(it).data()+d)=float(Pt[d]);
 			}
 		}

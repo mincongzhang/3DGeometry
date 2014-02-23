@@ -15,6 +15,6 @@ using namespace std;
 typedef OpenMesh::PolyMesh_ArrayKernelT<>  MyMesh;
 
 void MeshAlign(MyMesh &mesh1, MyMesh &mesh2);
-void getsampledAnnArray(MyMesh &mesh,ANNpointArray &dataArray, size_t sample_Pts, int sample_ratio);
-void RotateMesh(MyMesh &mesh);
-void AddNoise(MyMesh &mesh2);
+void getsampledAnnArray(size_t sample_Pts,int sample_ratio,MyMesh &mesh,ANNpointArray &dataArray);
+void RotateMesh(double rotate_theta,MyMesh &mesh);
+void AddNoise(double noise_standard_deviation,MyMesh &mesh2);

@@ -8,21 +8,23 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
 #include <ANN/ANN.h>
- 
-using namespace std; // make std:: accessible
+
+using namespace std;					 // make std:: accessible
 
 vector<MyMesh>  meshQueue;
 bool ALIGN_CONTROL = false;
 int ROTATE_CONTROL = 0;
 bool NOISE_CONTROL = false;
+double noise_standard_deviation = 0.01;  //standard_deviation for adding noise
+double rotate_theta = 5*2*M_PI/360;		 //degree for rotating source mesh
 
 COpenGLControl::COpenGLControl(void)
 {
-	m_fPosX = 0.0f;		// X position of model in camera view
-	m_fPosY = -0.1f;	// Y position of model in camera view
-	m_fZoom = 1.0f;		// Zoom on model in camera view
-	m_fRotX = 0.0f;		// Rotation on model in camera view
-	m_fRotY	= 0.0f;		// Rotation on model in camera view
+	m_fPosX = 0.0f;						 // X position of model in camera view
+	m_fPosY = -0.1f;					 // Y position of model in camera view
+	m_fZoom = 1.0f;						 // Zoom on model in camera view
+	m_fRotX = 0.0f;						 // Rotation on model in camera view
+	m_fRotY	= 0.0f;						 // Rotation on model in camera view
 	m_bIsMaximized = false;
 }
 
@@ -40,7 +42,7 @@ END_MESSAGE_MAP()
 
 void COpenGLControl::OnPaint()
 {
-	
+
 	//CPaintDC dc(this); // device context for painting
 	ValidateRect(NULL);
 }
@@ -68,7 +70,7 @@ void COpenGLControl::OnSize(UINT nType, int cx, int cy)
 	switch (nType)
 	{
 		// If window resize token is "maximize"
-		case SIZE_MAXIMIZED:
+	case SIZE_MAXIMIZED:
 		{
 			// Get the current window rect
 			GetWindowRect(m_rect);
@@ -86,7 +88,7 @@ void COpenGLControl::OnSize(UINT nType, int cx, int cy)
 		}
 
 		// If window resize token is "restore"
-		case SIZE_RESTORED:
+	case SIZE_RESTORED:
 		{
 			// If the window is currently maximized
 			if (m_bIsMaximized)
@@ -103,7 +105,7 @@ void COpenGLControl::OnSize(UINT nType, int cx, int cy)
 				// Store our old window as the new rect
 				m_oldWindow = m_rect;
 			}
-		
+
 			break;
 		}
 	}
@@ -135,7 +137,7 @@ void COpenGLControl::OnTimer(UINT nIDEvent)
 {
 	switch (nIDEvent)
 	{
-		case 1:
+	case 1:
 		{
 			// Clear color and depth buffer bits
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -149,8 +151,8 @@ void COpenGLControl::OnTimer(UINT nIDEvent)
 			break;
 		}
 
-		default:
-			break;
+	default:
+		break;
 	}
 
 	CWnd::OnTimer(nIDEvent);
@@ -230,7 +232,7 @@ void COpenGLControl::oglInitialize(void)
 
 	// Get device context only once.
 	hdc = GetDC()->m_hDC;
-	
+
 	// Pixel format.
 	m_nPixelFormat = ChoosePixelFormat(hdc, &pfd);
 	SetPixelFormat(hdc, m_nPixelFormat, &pfd);
@@ -246,11 +248,11 @@ void COpenGLControl::oglInitialize(void)
 	glClearDepth(1.0f);
 	////////////////////////////////////////
 
-  ///////////////////////////////////////
+	///////////////////////////////////////
 	// Turn on backface culling
 	glFrontFace(GL_CCW);
 	glCullFace(GL_BACK);
-	
+
 	// Turn on depth testing
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
@@ -272,29 +274,16 @@ void COpenGLControl::oglDrawScene(void)
 	{
 		if(meshsize>0)
 		{
-			//change the colour for each mesh
-			switch (i) 
-			{
-				case 0:
-				glColor3f(GLfloat(1.0), GLfloat(0.7), GLfloat(0.6));
-				break;
-				case 1:
-				glColor3f(GLfloat(0.6), GLfloat(0.5), GLfloat(1.0));
-				break;
-				default:
-				glColor3f(GLfloat(1.0), GLfloat(1.0), GLfloat(1.0));
-			};
-
 			//new source mesh (mesh3) = rotated target mesh (mesh1)
 			if(ROTATE_CONTROL!=0 && meshsize>=2)
 			{
-				RotateMesh(meshQueue.at(meshsize-1));			
+				RotateMesh(rotate_theta,meshQueue.at(meshsize-1));			
 			};
 
 			//add noise to source mesh (mesh2)
 			if(NOISE_CONTROL && meshsize>=2)
 			{
-				AddNoise(meshQueue.at(meshsize-1));
+				AddNoise(noise_standard_deviation,meshQueue.at(meshsize-1));
 			}
 
 			//align meshes
@@ -313,6 +302,22 @@ void COpenGLControl::oglDrawScene(void)
 			glBegin(GL_POINTS);
 			for (auto it = meshQueue.at(i).vertices_begin(); it != meshQueue.at(i).vertices_end(); ++it)
 			{
+
+				//change the colour for each mesh
+				switch (i) 
+				{
+				case 0:
+					glColor3f(GLfloat(1.0), GLfloat(0.8), GLfloat(0.6));
+					break;
+				case 1:
+					glColor3f(GLfloat(0.7), GLfloat(0.5), GLfloat(1.0));
+					break;
+				case 2:
+					glColor3f(GLfloat(0.6), GLfloat(1.0), GLfloat(0.5));
+					break;
+				default:
+					glColor3f(GLfloat(1.0), GLfloat(1.0), GLfloat(1.0));
+				};
 				auto point = meshQueue.at(i).point(it.handle());
 				glVertex3f(point.data()[0],point.data()[1],point.data()[2]);
 			}
