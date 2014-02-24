@@ -406,7 +406,7 @@ void AddNoise(double noise_standard_deviation,MyMesh &mesh2)
 		{
 			Pt[d]=*(mesh2.point(it).data()+d);
 			double randn = distribution(generator);
-			if ((randn>=-1.0)&&(randn<=1.0))							   //Gaussian distribution range [-1.0,1.0]
+			if ((randn>=-1.0)&&(randn<=1.0))							        //Gaussian distribution range [-1.0,1.0]
 			{
 				Pt[d]= Pt[d]*(1.0+randn);
 				*(mesh2.point(it).data()+d)=float(Pt[d]);
