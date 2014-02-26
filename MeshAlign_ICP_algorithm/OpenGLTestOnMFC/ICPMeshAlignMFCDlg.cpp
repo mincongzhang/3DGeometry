@@ -1,11 +1,9 @@
-
 // ICPMeshAlignMFCDlg.cpp : implementation file
 //
 
 #include "stdafx.h"
 #include "ICPMeshAlignMFC.h"
 #include "ICPMeshAlignMFCDlg.h"
-
 
 
 #ifdef _DEBUG
