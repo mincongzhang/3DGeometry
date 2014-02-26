@@ -17,8 +17,9 @@ typedef OpenMesh::PolyMesh_ArrayKernelT<>  MyMesh;
 
 extern  vector<MyMesh> meshQueue;
 extern bool ALIGN_CONTROL;
-extern int ROTATE_CONTROL;
 extern bool NOISE_CONTROL;
+extern bool MARK_CONTROL;
+extern int ROTATE_CONTROL;
 
 class COpenGLControl : public CWnd
 {

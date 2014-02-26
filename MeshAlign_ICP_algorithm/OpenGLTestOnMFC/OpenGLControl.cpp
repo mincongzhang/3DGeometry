@@ -12,9 +12,11 @@
 using namespace std;					 // make std:: accessible
 
 vector<MyMesh>  meshQueue;
+
 bool ALIGN_CONTROL = false;
-int ROTATE_CONTROL = 0;
 bool NOISE_CONTROL = false;
+bool MARK_CONTROL = false;
+int ROTATE_CONTROL = 0;
 double noise_standard_deviation = 0.01;  //standard_deviation for adding noise
 double rotate_theta = 5*2*M_PI/360;		 //degree for rotating source mesh
 
@@ -298,27 +300,50 @@ void COpenGLControl::oglDrawScene(void)
 				//MeshAlign(meshQueue.at(meshsize-1),meshQueue.at(0));
 			}
 
+			//mark out the overlapping regions
+			//vector<arrays> markQueue;
+			//if(MARK_CONTROL && meshsize>=2)
+			//{
+			//	for(int i=0;i < (meshsize-1);i++)
+			//	{
+					//bool markarray
+					//MarkOverlap(meshQueue.at(i),meshQueue.at(i+1));
+			//	}
+
+				//for meshQueue.at(i)
+					//meshsize = meshQueue.size()
+					//bool * [meshsize] array
+					//*array = MarkOverlap(array)
+					//insidefunction new array
+					//markQueue = vector<bool []>
+					//markQueue = push_back(*array)
+				//end for
+			//}
+
 			//draw meshes
 			glBegin(GL_POINTS);
+			//change the colour for each mesh
+			switch (i) 
+			{
+			case 0:
+				glColor3f(GLfloat(1.0), GLfloat(0.8), GLfloat(0.6));
+				break;
+			case 1:
+				glColor3f(GLfloat(0.7), GLfloat(0.5), GLfloat(1.0));
+				break;
+			case 2:
+				glColor3f(GLfloat(0.6), GLfloat(1.0), GLfloat(0.5));
+				break;
+			default:
+				glColor3f(GLfloat(0.5), GLfloat(0.5), GLfloat(0.5));
+			};
 			for (auto it = meshQueue.at(i).vertices_begin(); it != meshQueue.at(i).vertices_end(); ++it)
 			{
-
-				//change the colour for each mesh
-				switch (i) 
-				{
-				case 0:
-					glColor3f(GLfloat(1.0), GLfloat(0.8), GLfloat(0.6));
-					break;
-				case 1:
-					glColor3f(GLfloat(0.7), GLfloat(0.5), GLfloat(1.0));
-					break;
-				case 2:
-					glColor3f(GLfloat(0.6), GLfloat(1.0), GLfloat(0.5));
-					break;
-				default:
-					glColor3f(GLfloat(1.0), GLfloat(1.0), GLfloat(1.0));
-				};
 				auto point = meshQueue.at(i).point(it.handle());
+				//if( ChangeColour(point,mesh))
+				//{
+				glColor3f(GLfloat(0.5), GLfloat(0.5), GLfloat(0.5));
+				//}
 				glVertex3f(point.data()[0],point.data()[1],point.data()[2]);
 			}
 			glEnd();

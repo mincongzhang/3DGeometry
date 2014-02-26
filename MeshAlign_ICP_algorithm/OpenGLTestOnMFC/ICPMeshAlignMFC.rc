@@ -105,11 +105,12 @@ BEGIN
     CONTROL         "",IDC_PIC_OPENGL,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,24,17,351,220
     PUSHBUTTON      "LoadMesh",Load,42,241,50,14
     PUSHBUTTON      "AlignMesh",Align,101,241,50,14
-    LTEXT           "Right mouse button: Rotate                               Left mouse button: Translate                             Middle mouse button: Zoom in/out",IDC_STATIC,245,247,149,28
+    LTEXT           "Left mouse button: Rotate      Mid mouse button: Zoom in/out Right mouse button: Translate",IDC_STATIC,302,247,99,28
     PUSHBUTTON      "Rotate_X",RotateX,42,261,50,14
     PUSHBUTTON      "AddNoise",Noise,160,241,50,14
     PUSHBUTTON      "Rotate_Y",RotateY,101,261,50,14
     PUSHBUTTON      "Rotate_Z",RotateZ,160,261,50,14
+    PUSHBUTTON      "MarkOverlap",MarkOverlap,217,241,50,14
 END
 
 

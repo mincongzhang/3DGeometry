@@ -75,6 +75,7 @@ BEGIN_MESSAGE_MAP(CICPMeshAlignMFCDlg, CDialog)
 	ON_BN_CLICKED(RotateX, &CICPMeshAlignMFCDlg::OnBnClickedRotatex)
 	ON_BN_CLICKED(RotateY, &CICPMeshAlignMFCDlg::OnBnClickedRotatey)
 	ON_BN_CLICKED(RotateZ, &CICPMeshAlignMFCDlg::OnBnClickedRotatez)
+	ON_BN_CLICKED(MarkOverlap, &CICPMeshAlignMFCDlg::OnBnClickedMarkoverlap)
 END_MESSAGE_MAP()
 
 
@@ -283,5 +284,12 @@ void CICPMeshAlignMFCDlg::OnBnClickedRotatey()
 void CICPMeshAlignMFCDlg::OnBnClickedRotatez()
 {
 	ROTATE_CONTROL = 3;
+	ALIGN_CONTROL = false;
+}
+
+
+void CICPMeshAlignMFCDlg::OnBnClickedMarkoverlap()
+{
+	MARK_CONTROL = true;
 	ALIGN_CONTROL = false;
 }

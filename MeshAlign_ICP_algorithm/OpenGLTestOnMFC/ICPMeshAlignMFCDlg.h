@@ -43,4 +43,5 @@ public:
 	afx_msg void OnBnClickedRotatex();
 	afx_msg void OnBnClickedRotatey();
 	afx_msg void OnBnClickedRotatez();
+	afx_msg void OnBnClickedMarkoverlap();
 };
