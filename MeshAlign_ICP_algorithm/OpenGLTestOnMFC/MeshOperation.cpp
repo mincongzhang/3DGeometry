@@ -395,7 +395,6 @@ void RotateMesh(double rotate_theta,MyMesh &mesh1)
 
 void AddNoise(double noise_standard_deviation,MyMesh &mesh2)
 {
-	//double  standard_deviation = 0.01;
 	std::default_random_engine generator;
 	std::normal_distribution<double> distribution(0.0,noise_standard_deviation); //Gaussian distribution: mean value = 0.0
 

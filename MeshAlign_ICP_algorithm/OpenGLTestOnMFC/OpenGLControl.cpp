@@ -340,10 +340,7 @@ void COpenGLControl::oglDrawScene(void)
 			for (auto it = meshQueue.at(i).vertices_begin(); it != meshQueue.at(i).vertices_end(); ++it)
 			{
 				auto point = meshQueue.at(i).point(it.handle());
-				//if( ChangeColour(point,mesh))
-				//{
-				glColor3f(GLfloat(0.5), GLfloat(0.5), GLfloat(0.5));
-				//}
+				//glColor3f(GLfloat(0.5), GLfloat(0.5), GLfloat(0.5));
 				glVertex3f(point.data()[0],point.data()[1],point.data()[2]);
 			}
 			glEnd();
