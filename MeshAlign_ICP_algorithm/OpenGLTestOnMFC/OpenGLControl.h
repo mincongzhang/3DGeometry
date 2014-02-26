@@ -11,8 +11,6 @@
 #include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
 using namespace std;
 
-
-
 typedef OpenMesh::PolyMesh_ArrayKernelT<>  MyMesh;
 
 extern  vector<MyMesh> meshQueue;
