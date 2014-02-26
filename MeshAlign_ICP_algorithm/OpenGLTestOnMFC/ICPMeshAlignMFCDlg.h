@@ -1,4 +1,3 @@
-
 // ICPMeshAlignMFCDlg.h : header file
 //
 
