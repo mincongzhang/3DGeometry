@@ -15,10 +15,23 @@ vector<MyMesh>  meshQueue;
 
 bool ALIGN_CONTROL = false;
 bool NOISE_CONTROL = false;
-bool MARK_CONTROL = false;
-int ROTATE_CONTROL = 0;
+bool DENOISE1_CONTROL = false;
+bool DENOISE2_CONTROL = false;
+bool DENOISE3_CONTROL = false;
+bool LAPLACE_DENOISE_CONTROL = false;
+bool BINORM_DENOISE_CONTROL = false;
+bool SHOWPOINTS_CONTROL = true;
+bool SHOWFACES_CONTROL = false;
+bool SHOWWIREFRAME_CONTROL = false;
+int  ROTATE_CONTROL = 0;
 double noise_standard_deviation = 0.01;  //standard_deviation for adding noise
 double rotate_theta = 5*2*M_PI/360;		 //degree for rotating source mesh
+
+	// Lighting components
+	GLfloat  ambientLight[] = { 0.5f, 0.5f, 0.5f, 1.0f };
+	GLfloat  diffuseLight[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GLfloat  specular[] = { 1.0f, 1.0f, 1.0f, 1.0f};
+	GLfloat	 lightPos[] = { 1.0f, 1.0f, 1.0f, 0.0f };
 
 COpenGLControl::COpenGLControl(void)
 {
@@ -216,6 +229,30 @@ void COpenGLControl::oglCreate(CRect rect, CWnd *parent)
 	hWnd = parent;
 }
 
+
+
+void COpenGLControl::GLSetupRC()
+{
+	glEnable(GL_DEPTH_TEST);	// Hidden surface removal
+	glEnable(GL_COLOR_MATERIAL);
+
+	glEnable(GL_LIGHTING);
+	glLightfv(GL_LIGHT0,GL_AMBIENT,ambientLight);
+	glLightfv(GL_LIGHT0,GL_DIFFUSE,diffuseLight);
+	glLightfv(GL_LIGHT0,GL_SPECULAR,specular);
+	glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
+	glEnable(GL_LIGHT0);
+
+	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	glMaterialfv(GL_FRONT, GL_SPECULAR,specular);
+	glMateriali(GL_FRONT,GL_SHININESS,120.0f);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f ); //background color
+	// default color
+	glColor3ub(0, 0, 255);
+}
+
+
 void COpenGLControl::oglInitialize(void)
 {
 	// Initial Setup:
@@ -245,6 +282,7 @@ void COpenGLControl::oglInitialize(void)
 
 	// Basic Setup:
 	//
+	GLSetupRC();
 	// Set color to use when clearing the background.
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClearDepth(1.0f);
@@ -267,6 +305,7 @@ void COpenGLControl::oglInitialize(void)
 
 void COpenGLControl::oglDrawScene(void)
 {
+	//menu_system();
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -279,21 +318,42 @@ void COpenGLControl::oglDrawScene(void)
 	};
 
 	//add noise to source mesh (mesh2)
-	if(NOISE_CONTROL && meshsize>=2)
+	if(NOISE_CONTROL && meshsize>=1)
 	{
 		AddNoise(noise_standard_deviation,meshQueue.at(meshsize-1));
+	}
+
+	//denoising
+	if(DENOISE1_CONTROL && meshsize>=1)
+	{
+		Denoise1(meshQueue.at(meshsize-1));
+	}
+	if(DENOISE2_CONTROL && meshsize>=1)
+	{
+		Denoise2(meshQueue.at(meshsize-1));
+	}
+	if(DENOISE3_CONTROL && meshsize>=1)
+	{
+		Denoise3(meshQueue.at(meshsize-1));
+	}
+	if(LAPLACE_DENOISE_CONTROL && meshsize>=1)
+	{
+		LaplaceDenoise(meshQueue.at(meshsize-1));
+	}
+	if(BINORM_DENOISE_CONTROL && meshsize>=1)
+	{
+		BiNormDenoise(meshQueue.at(meshsize-1));
 	}
 
 	//align meshes
 	if(ALIGN_CONTROL && meshsize>=2)
 	{	
 		//directly modify the address of each mesh
-		for(int i=0;i<(meshsize-1);i++)
+		for(int i=0;i< (meshsize-1);i++)
 		{
 			//align source mesh (mesh2) to target mesh (mesh1)
 			MeshAlign(meshQueue.at(i+1),meshQueue.at(i));
 		}
-		//MeshAlign(meshQueue.at(meshsize-1),meshQueue.at(0));
 	}
 
 	//draw meshes
@@ -301,29 +361,11 @@ void COpenGLControl::oglDrawScene(void)
 	{
 		if(meshsize>0)
 		{
-			vector<bool> overlap(meshQueue.at(0).n_vertices());
-			//mark out the overlapping regions
-			if(MARK_CONTROL && meshsize>=2)
-			{
-				//define the vector size as the number of vertices
-				//vector<bool> overlap(meshQueue.at(i).n_vertices());
-				//find overlap
-				//if(i+1!=meshsize-1)
-				//{
-				//	MarkOverlap(meshQueue.at(0),meshQueue.at(1),overlap);
-				//}
-				//else
-				//{
-				//	MarkOverlap(meshQueue.at(i),meshQueue.at(0),overlap);
-				//}
-			}
-
-			glBegin(GL_POINTS);
 			//change the colour for each mesh
 			switch (i) 
 			{
 			case 0:
-				glColor3f(GLfloat(1.0), GLfloat(0.8), GLfloat(0.6));
+				glColor3f(GLfloat(0.8), GLfloat(0.8), GLfloat(0.2));
 				break;
 			case 1:
 				glColor3f(GLfloat(0.7), GLfloat(0.5), GLfloat(1.0));
@@ -334,19 +376,46 @@ void COpenGLControl::oglDrawScene(void)
 			default:
 				glColor3f(GLfloat(0.5), GLfloat(0.5), GLfloat(0.5));
 			};
-			for (auto it = meshQueue.at(i).vertices_begin(); it != meshQueue.at(i).vertices_end(); ++it)
+
+			if(!SHOWPOINTS_CONTROL)
 			{
-				int index = it->idx();
-				//mark overlap
-				//if(i==0 && overlap.at(index)==true && MARK_CONTROL)
-				//{
-				//	glColor3f(GLfloat(0.5), GLfloat(0.5), GLfloat(0.5));
-				//}
-				auto point = meshQueue.at(i).point(it.handle());
-				glVertex3f(point.data()[0],point.data()[1],point.data()[2]);
+				if(SHOWWIREFRAME_CONTROL)
+				{
+					glDisable(GL_LIGHTING);
+					glBegin(GL_LINES);
+				}
+				else if(SHOWFACES_CONTROL)
+				{
+				glBegin(GL_POLYGON);
+				}
+				for (MyMesh::FaceIter it = meshQueue.at(i).faces_begin(); it != meshQueue.at(i).faces_end(); ++it)
+				{
+					MyMesh::FaceVertexIter fv_it;
+					for (fv_it = meshQueue.at(i).fv_iter(it);fv_it;++fv_it)
+					{
+						MyMesh::VertexIter  v_it;
+						MyMesh::VertexVertexIter    vv_it;
+						vv_it= meshQueue.at(i).vv_iter( fv_it );
+						glVertex3f(meshQueue.at(i).point(vv_it).data()[0],meshQueue.at(i).point(vv_it).data()[1],meshQueue.at(i).point(vv_it).data()[2]);
+					}
+				}
+				glEnd();
 			}
-			glEnd();
+			else if(SHOWPOINTS_CONTROL)
+			{
+				glDisable(GL_LIGHTING);
+				glPointSize(2.0);
+				glBegin(GL_POINTS);
+				for (auto it = meshQueue.at(i).vertices_begin(); it != meshQueue.at(i).vertices_end(); ++it)
+				{
+
+					int index = it->idx();
+					auto point = meshQueue.at(i).point(it.handle());
+					glVertex3f(point.data()[0],point.data()[1],point.data()[2]);
+				}
+				glEnd();
+			}
+
 		}
 	}//end for (unsigned int i=0;i<meshsize;i++)
-
 }

@@ -57,7 +57,7 @@ void getsampledAnnArray(size_t sample_Pts,int sample_ratio,MyMesh &mesh,ANNpoint
 };
 
 //Align meshes
-void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
+void MeshAlign(MyMesh &source_mesh, MyMesh &target_mesh)
 {
 	/*ANN kd-tree find nearest point*/
 	ANNpointArray	sampledSourceArray;		// source data points array
@@ -74,8 +74,8 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 	nnIdx = new ANNidx[k];					// allocate near neigh indices
 	dists = new ANNdist[k];					// allocate near neighbor dists
 
-	int max_sourcePts = mesh1.n_vertices();					//max source points
-	int max_targetPts = mesh2.n_vertices();					//max target points
+	int max_sourcePts = source_mesh.n_vertices();					//max source points
+	int max_targetPts = target_mesh.n_vertices();					//max target points
 	int sample_ratio = 20;									//sample ratio
 	int sample_sourcePts = max_sourcePts/sample_ratio;		//sample source points
 	int sample_targetPts = max_targetPts/sample_ratio;		//sample target points
@@ -88,8 +88,8 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 	MatchArray		   = annAllocPts(sample_sourcePts, dim);
 
 	//assign sampled meshes to ANN array,directly modify the address of arrays
-	getsampledAnnArray(sample_sourcePts,sample_ratio,mesh1,sampledSourceArray);
-	getsampledAnnArray(sample_sourcePts,sample_ratio,mesh2,sampledTargetArray);
+	getsampledAnnArray(sample_sourcePts,sample_ratio,source_mesh,sampledSourceArray);
+	getsampledAnnArray(sample_sourcePts,sample_ratio,target_mesh,sampledTargetArray);
 
 	//build kd-tree
 	kdTree = new ANNkd_tree(	// build search structure
@@ -180,7 +180,8 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 		qpt_cross_array[8] += Q_diff[2]*P_diff[2];
 
 		/*   p*(p_transpose) cross product array
-		matrix index [0 1 2
+		matrix index 
+		[0 1 2
 		3 4 5
 		6 7 8] */
 		ppt_cross_array[0] += P_diff[0]*P_diff[0];
@@ -219,7 +220,8 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 	//cross product matrix 
 	/*
 	gsl_matrix_alloc (size_t n1, size_t n2) : matrix of size n1 rows by n2 columns
-	matrix index [0 1 2
+	matrix index 
+	[0 1 2
 	3 4 5
 	6 7 8] 
 	*/
@@ -285,13 +287,13 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 	}
 
 	//Rotate and translate source data points to a new mesh
-	for (auto it = mesh1.vertices_begin(); it != mesh1.vertices_end(); ++it)
+	for (auto it = source_mesh.vertices_begin(); it != source_mesh.vertices_end(); ++it)
 	{
 		double oldPt [3] = {};
 		double newPt [3] = {};
 		for(int d=0;d<dim;d++){
 			newPt[d]=trans[d];
-			oldPt[d]=*(mesh1.point(it).data()+d);
+			oldPt[d]=*(source_mesh.point(it).data()+d);
 		}
 
 		//Mutiply by rotation matrix
@@ -301,20 +303,20 @@ void MeshAlign(MyMesh &mesh1, MyMesh &mesh2)
 
 		//update the source mesh
 		for(int d=0;d<dim;d++){
-			*(mesh1.point(it).data()+d)=float(newPt[d]);
+			*(source_mesh.point(it).data()+d)=float(newPt[d]);
 		}
 	}
 
 };
 
-void RotateMesh(double rotate_theta,MyMesh &mesh1)
+void RotateMesh(double rotate_theta,MyMesh &mesh)
 {
 	//double theta = 10*2*M_PI/360;
 	double rotation [9] = {};
 	double trans [3] = {};
 	double Pt_mean [3] = {};
 	double Pt_sum [3] = {};
-	int mesh1size = mesh1.n_vertices();
+	int mesh1size = mesh.n_vertices();
 
 	switch(ROTATE_CONTROL)
 	{
@@ -346,12 +348,12 @@ void RotateMesh(double rotate_theta,MyMesh &mesh1)
 
 	//get sum and mean for current mesh
 	//so that to get Translation array
-	for (auto it = mesh1.vertices_begin(); it != mesh1.vertices_end(); ++it)
+	for (auto it = mesh.vertices_begin(); it != mesh.vertices_end(); ++it)
 	{
 		double Pt [3] = {};
 		for(int d=0;d<dim;d++)
 		{
-			Pt[d]+=*(mesh1.point(it).data()+d);
+			Pt[d]+=*(mesh.point(it).data()+d);
 			Pt_sum[d] += Pt[d]; 
 		}
 	}
@@ -365,13 +367,13 @@ void RotateMesh(double rotate_theta,MyMesh &mesh1)
 
 
 	//rotation along the center of current mesh
-	for (auto it = mesh1.vertices_begin(); it != mesh1.vertices_end(); ++it)
+	for (auto it = mesh.vertices_begin(); it != mesh.vertices_end(); ++it)
 	{
 		double oldPt [3] = {};
 		double newPt [3] = {};
 		for(int d=0;d<dim;d++)
 		{
-			oldPt[d]=*(mesh1.point(it).data()+d);
+			oldPt[d]=*(mesh.point(it).data()+d);
 			//Translate to origin
 			oldPt[d]-=trans[d];
 		}
@@ -386,32 +388,123 @@ void RotateMesh(double rotate_theta,MyMesh &mesh1)
 		{
 			//Translate back
 			newPt[d]+=trans[d];
-			*(mesh1.point(it).data()+d)=float(newPt[d]);
+			*(mesh.point(it).data()+d)=float(newPt[d]);
 		}
 	}
 	ROTATE_CONTROL = 0;
 }
 
 
-void AddNoise(double noise_standard_deviation,MyMesh &mesh2)
+void AddNoise(double noise_standard_deviation,MyMesh &mesh)
 {
 	std::default_random_engine generator;
 	std::normal_distribution<double> distribution(0.0,noise_standard_deviation); //Gaussian distribution: mean value = 0.0
 
-	for (auto it = mesh2.vertices_begin(); it != mesh2.vertices_end(); ++it)
+	for (auto it = mesh.vertices_begin(); it != mesh.vertices_end(); ++it)
 	{
 		double Pt[3] = {};
 		for (int d=0;d<dim;d++)
 		{
-			Pt[d]=*(mesh2.point(it).data()+d);
+			Pt[d]=*(mesh.point(it).data()+d);
 			double randn = distribution(generator);
 			if ((randn>=-1.0)&&(randn<=1.0))							        //Gaussian distribution range [-1.0,1.0]
 			{
 				Pt[d]= Pt[d]*(1.0+randn);
-				*(mesh2.point(it).data()+d)=float(Pt[d]);
+				*(mesh.point(it).data()+d)=float(Pt[d]);
 			}
 		}
 	}
 	NOISE_CONTROL = false;
 }
 
+void MarkOverlap(MyMesh &source_mesh, MyMesh &target_mesh,vector<bool> &overlap)
+{
+		/*ANN kd-tree find nearest point*/
+	ANNpointArray	SourceArray;		// source data points array
+	ANNpointArray	TargetArray;		// target data points array
+	ANNpoint		Pt;				    // point
+	ANNidxArray		nnIdx;					// near neighbor indices
+	ANNdistArray	dists;					// near neighbor distances
+	ANNkd_tree*		kdTree;					// search structure
+
+	Pt = annAllocPt(dim);
+	nnIdx = new ANNidx[k];					// allocate near neigh indices
+	dists = new ANNdist[k];					// allocate near neighbor dists
+
+	int sourcePts = source_mesh.n_vertices();					//source points
+	int targetPts = target_mesh.n_vertices();					//target points
+
+	double thresh = 0.000005;	   //threshold for overlap judgement
+	double getPt[3] = {};
+
+	SourceArray = annAllocPts(sourcePts, dim);
+	TargetArray = annAllocPts(targetPts, dim);
+
+	//assign points to source and target 
+	for (auto it = source_mesh.vertices_begin(); it != source_mesh.vertices_end(); ++it)
+	{   
+		int index = it->idx();
+			//Pt get the space of data array
+			Pt = SourceArray[index];
+			//Pt get the coordinates of mesh point
+			for(int d = 0;d < dim; d++)
+			{
+				getPt[d] = *(source_mesh.point(it).data()+d);
+				Pt[d] = getPt[d];
+			}
+			//assign Pt coordinates to data array
+			SourceArray[index] = Pt;
+	}
+	
+	for (auto it = target_mesh.vertices_begin(); it != target_mesh.vertices_end(); ++it)
+	{   
+		int index = it->idx();
+			//Pt get the space of data array
+			Pt = TargetArray[index];
+			//Pt get the coordinates of mesh point
+			for(int d = 0;d < dim; d++)
+			{
+				getPt[d] = *(target_mesh.point(it).data()+d);
+				Pt[d] = getPt[d];
+			}
+			//assign Pt coordinates to data array
+			TargetArray[index] = Pt;
+	}
+
+	//build kd-tree
+	kdTree = new ANNkd_tree(	// build search structure
+		TargetArray,		    // the data points
+		targetPts,		        // number of points
+		dim);					// dimension of space
+
+	for(int m=0;m <sourcePts ; m++)
+	{
+		//Pt get the coordinates from source array
+		Pt=SourceArray[m];
+
+		kdTree->annkSearch(		// search
+			Pt,			// query point
+			k,					// number of near neighbors
+			nnIdx,				// nearest neighbors (returned)
+			dists,				// distance (returned)
+			eps);				// error bound
+
+		if(*dists<thresh)
+		{
+			//overlap.at(m)=true; //BUG?
+			overlap.push_back(true);
+		}
+		else
+		{
+			//overlap.at(m)=false;
+			overlap.push_back(false);
+		}
+	}
+
+	// clean kd-tree
+	delete [] nnIdx; 
+	delete [] dists;
+	delete kdTree;
+	annClose(); 
+
+}
