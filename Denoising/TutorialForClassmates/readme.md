@@ -1,1 +1,0 @@
-This is for teaching my classmates who didn't finish the coursework and don't know how to do it.
