@@ -89,7 +89,7 @@ void MeshAlign(MyMesh &source_mesh, MyMesh &target_mesh)
 
 	//assign sampled meshes to ANN array,directly modify the address of arrays
 	getsampledAnnArray(sample_sourcePts,sample_ratio,source_mesh,sampledSourceArray);
-	getsampledAnnArray(sample_sourcePts,sample_ratio,target_mesh,sampledTargetArray);
+	getsampledAnnArray(sample_targetPts,sample_ratio,target_mesh,sampledTargetArray);
 
 	//build kd-tree
 	kdTree = new ANNkd_tree(	// build search structure
