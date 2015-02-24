@@ -269,6 +269,11 @@ void MeshAlign(MyMesh &source_mesh, MyMesh &target_mesh)
 	gsl_vector_free (S);
 	gsl_vector_free (work);
 
+	/*
+	2015.2.24
+	Because the Q and P are inversed from the slides,
+	so in the code we have R = U_array*VT_array instead of R = V*UT
+	*/
 	//rotation matrix: R* = VV*UT
 	cblas_dgemm(CblasRowMajor, 
 		CblasNoTrans, CblasNoTrans, 3, 3, 3,
