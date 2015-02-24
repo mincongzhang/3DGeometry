@@ -108,6 +108,12 @@ A = A1;
 %method from lecture notes
 %[U,S,V] = svd(C);
 %method from slides
+%
+%	2015.2.24
+%	Because the Q and P are inversed from the slides,
+%	in the code we have R = U_array*VT_array instead of R = V*UT
+%	
+%
 [U,S,V] = svd(A);
 R = U*V';
 T = Q_mean' - R*P_mean'; %3x1
